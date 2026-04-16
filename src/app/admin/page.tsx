@@ -8,6 +8,7 @@ import { formatPhone } from '@/lib/session';
 type Phone = {
   phone: string;
   label: string | null;
+  session_days: number;
   created_at: string;
   last_seen_at: string | null;
 };
@@ -111,6 +112,7 @@ function PhonePanel({
 }) {
   const [phone, setPhone] = useState('');
   const [label, setLabel] = useState('');
+  const [sessionDays, setSessionDays] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -120,7 +122,7 @@ function PhonePanel({
       const res = await fetch('/api/admin/phones', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ phone, label: label || null }),
+        body: JSON.stringify({ phone, label: label || null, session_days: sessionDays }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -155,7 +157,7 @@ function PhonePanel({
       </h2>
 
       <form onSubmit={handleAdd} className="mb-4 space-y-2">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
           <input
             type="tel"
             inputMode="numeric"
@@ -172,6 +174,17 @@ function PhonePanel({
             onChange={(e) => setLabel(e.target.value)}
             className="rounded border border-[rgba(255,100,170,0.3)] bg-[rgba(255,100,180,0.06)] px-3 py-2 font-[family-name:var(--font-josefin)] text-xs tracking-[0.08em] text-[#FFE0F0] outline-none focus:border-[#FF80C0]"
           />
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={sessionDays}
+              onChange={(e) => setSessionDays(Number(e.target.value) || 1)}
+              className="w-16 rounded border border-[rgba(255,100,170,0.3)] bg-[rgba(255,100,180,0.06)] px-2 py-2 text-center font-[family-name:var(--font-josefin)] text-xs tracking-[0.08em] text-[#FFE0F0] outline-none focus:border-[#FF80C0]"
+            />
+            <span className="font-[family-name:var(--font-josefin)] text-[0.6rem] tracking-[0.1em] text-[rgba(255,150,200,0.6)]">일</span>
+          </div>
           <button
             type="submit"
             disabled={submitting || !phone}
@@ -199,6 +212,7 @@ function PhonePanel({
                 </div>
                 <div className="font-[family-name:var(--font-josefin)] text-[0.62rem] tracking-[0.1em] text-[rgba(255,150,200,0.55)]">
                   {p.label ?? '—'}
+                  <span className="ml-2">· {p.session_days}일</span>
                   {p.last_seen_at && (
                     <span className="ml-2 text-[#A0FFB8]">
                       · last: {new Date(p.last_seen_at).toLocaleDateString()}

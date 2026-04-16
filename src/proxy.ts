@@ -5,7 +5,7 @@ import { sessionOptions, type LabSession } from '@/lib/session';
 const PUBLIC_PATHS = new Set(['/auth']);
 const ADMIN_LOGIN = '/admin/login';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Allow Next internals, static assets, and API routes (they handle their own auth)

@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const rawPhone = typeof body.phone === 'string' ? body.phone : '';
   const label = typeof body.label === 'string' ? body.label : null;
+  const sessionDays = Math.max(1, Math.min(365, Number(body.session_days) || 1));
 
   const phone = normalizePhone(rawPhone);
   if (!isValidKoreanMobile(phone)) {
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from('allowed_phones')
-    .upsert({ phone, label })
+    .upsert({ phone, label, session_days: sessionDays })
     .select();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
