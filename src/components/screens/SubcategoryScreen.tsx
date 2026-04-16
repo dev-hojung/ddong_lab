@@ -2,17 +2,19 @@
 
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { BACKGROUNDS, CAT_NAMES, PARTS_DATA } from '@/lib/parts-data';
+import { BACKGROUNDS, CAT_NAMES, type Category, type Part } from '@/lib/parts-data';
 import { useLabStore } from '@/lib/store';
 import BackButton from '@/components/ui/BackButton';
 import PartCard from '@/components/ui/PartCard';
 
-export default function SubcategoryScreen() {
+type Props = { partsMap: Record<Category, Part[]> };
+
+export default function SubcategoryScreen({ partsMap }: Props) {
   const cat = useLabStore((s) => s.cat);
   const cart = useLabStore((s) => s.cart);
   const toggleCart = useLabStore((s) => s.toggleCart);
 
-  const parts = PARTS_DATA[cat] ?? [];
+  const parts = partsMap[cat] ?? [];
 
   return (
     <motion.section
