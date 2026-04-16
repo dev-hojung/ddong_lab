@@ -36,6 +36,7 @@ export default function CrtTv({ cat }: Props) {
             src={CRT_THUMBS[cat]}
             alt=""
             fill
+            unoptimized
             sizes="(max-width: 640px) 45vw, 230px"
             className="object-cover"
           />

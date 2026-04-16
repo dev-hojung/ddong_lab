@@ -24,6 +24,7 @@ export default function LandingScreen() {
         alt=""
         fill
         priority
+        unoptimized
         sizes="100vw"
         className="z-0 object-cover object-center"
       />

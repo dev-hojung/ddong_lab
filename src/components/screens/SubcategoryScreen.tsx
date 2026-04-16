@@ -27,6 +27,7 @@ export default function SubcategoryScreen() {
         src={BACKGROUNDS.s3}
         alt=""
         fill
+        unoptimized
         sizes="100vw"
         className="z-0 object-cover object-center"
         style={{ filter: 'brightness(0.55) saturate(1.3)' }}

@@ -25,6 +25,7 @@ export default function CartWidget() {
         alt=""
         width={60}
         height={50}
+        unoptimized
         className="block h-[50px] w-[60px] object-contain drop-shadow-[0_3px_10px_rgba(255,80,160,0.4)]"
       />
       <span

@@ -19,6 +19,7 @@ export default function CategoryScreen() {
         src={BACKGROUNDS.s2}
         alt=""
         fill
+        unoptimized
         sizes="100vw"
         className="z-0 object-cover object-center"
         style={{ filter: 'brightness(0.65) saturate(1.2)' }}

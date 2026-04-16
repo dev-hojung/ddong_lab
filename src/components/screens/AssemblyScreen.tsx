@@ -98,6 +98,7 @@ export default function AssemblyScreen() {
         src={BACKGROUNDS.s4}
         alt=""
         fill
+        unoptimized
         sizes="100vw"
         className="z-0 object-cover object-center"
         style={{ filter: 'hue-rotate(300deg) saturate(1.4) brightness(0.6)' }}
