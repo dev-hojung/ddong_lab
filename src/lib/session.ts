@@ -4,14 +4,38 @@ export type LabSession = {
   phone?: string;      // Normalized digits-only phone (01012345678)
   isAdmin?: boolean;   // Set by admin password flow
   issuedAt?: number;   // ms epoch
+  lastCheckedAt?: number; // ms epoch of last allowed_phones revalidation
 };
 
 const ONE_DAY_IN_MINUTES = 60 * 24; // 1440 minutes
 
+// iron-session requires a 32+ character password for AES-256-GCM.
+const DEV_FALLBACK_SECRET = 'dev-only-insecure-secret-please-replace-in-prod-0123456789';
+
+function readSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (secret && secret.length >= 32) return secret;
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'SESSION_SECRET env var is missing or shorter than 32 characters. ' +
+        'Generate one with `openssl rand -base64 48` and set it in the production environment.',
+    );
+  }
+
+  if (typeof console !== 'undefined') {
+    console.warn(
+      '[session] SESSION_SECRET is missing — using an insecure dev fallback. ' +
+        'Set SESSION_SECRET in .env.local before deploying.',
+    );
+  }
+  return DEV_FALLBACK_SECRET;
+}
+
 /** Base session options (default 1 day = 1440 minutes). */
 export const sessionOptions: SessionOptions = {
   cookieName: 'bearstein_session',
-  password: process.env.SESSION_SECRET || 'dev-only-insecure-secret-please-replace-in-prod-0123456789',
+  password: readSessionSecret(),
   cookieOptions: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,

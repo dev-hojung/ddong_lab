@@ -6,6 +6,13 @@ import { getSupabaseAdmin } from '@/lib/supabase/server';
 const PUBLIC_PATHS = new Set(['/auth']);
 const ADMIN_LOGIN = '/admin/login';
 
+/**
+ * Re-check `allowed_phones` at most once per this interval per session.
+ * Prevents a Supabase round-trip on every navigation while still enforcing
+ * admin revocations within a bounded window.
+ */
+const REVALIDATION_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -49,24 +56,45 @@ export async function proxy(req: NextRequest) {
   }
 
   // ── Verify phone still in whitelist (revoke access if admin removed the number) ──
+  // Cached per session via `lastCheckedAt` to avoid hitting Supabase on every navigation.
   if (session.phone && !session.isAdmin) {
-    try {
-      const supabase = getSupabaseAdmin();
-      const { data } = await supabase
-        .from('allowed_phones')
-        .select('phone')
-        .eq('phone', session.phone)
-        .maybeSingle();
+    const now = Date.now();
+    const needsRevalidation =
+      !session.lastCheckedAt || now - session.lastCheckedAt > REVALIDATION_INTERVAL_MS;
 
-      if (!data) {
-        // Phone was removed from whitelist — destroy session
-        session.destroy();
-        const url = req.nextUrl.clone();
-        url.pathname = '/auth';
-        return NextResponse.redirect(url);
+    if (needsRevalidation) {
+      try {
+        const supabase = getSupabaseAdmin();
+        const { data, error } = await supabase
+          .from('allowed_phones')
+          .select('phone')
+          .eq('phone', session.phone)
+          .maybeSingle();
+
+        if (error) {
+          // Fail-open on transient DB errors but log loudly so silent outages
+          // don't become a silent "open to all" security posture.
+          console.error(
+            '[proxy] allowed_phones revalidation failed; session permitted without re-check.',
+            { phone: session.phone, error: error.message },
+          );
+        } else if (!data) {
+          // Phone was removed from whitelist — destroy session
+          session.destroy();
+          const url = req.nextUrl.clone();
+          url.pathname = '/auth';
+          return NextResponse.redirect(url);
+        } else {
+          // Revalidated successfully — stamp the cookie so we skip the next N minutes.
+          session.lastCheckedAt = now;
+          await session.save();
+        }
+      } catch (err) {
+        console.error(
+          '[proxy] allowed_phones revalidation threw; session permitted without re-check.',
+          { phone: session.phone, err },
+        );
       }
-    } catch {
-      // DB error — allow access rather than blocking (fail-open for UX)
     }
   }
 
