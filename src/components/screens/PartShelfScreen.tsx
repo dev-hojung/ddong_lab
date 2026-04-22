@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { memo, useCallback, useMemo } from 'react';
 
 import { motion } from 'framer-motion';
 
@@ -26,8 +27,6 @@ const TILE_ROWS = 3;
 const TILE_COUNT = TILE_COLS * TILE_ROWS;
 
 // Grid position — right side of the aspect-locked stage, past the cabinet.
-// Matches the "오른쪽 흰색칸 분리" bg layout: cabinet occupies x 0.05–0.48,
-// so the grid lives in the clear workbench area x 0.50–0.95.
 const GRID_POSE = { left: 0.5, top: 0.2, width: 0.45, height: 0.62 };
 
 export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
@@ -35,9 +34,11 @@ export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
   const parts = partsMap[v1Cat] ?? [];
   const longName = LAB_CAT_NAMES_LONG[category];
 
-  const slots: Array<Part | null> = Array.from(
-    { length: TILE_COUNT },
-    (_, i) => parts[i] ?? null,
+  // Stabilize the slot array so ShelfTile memoization is effective; identity
+  // only changes when the underlying parts list does.
+  const slots = useMemo<ReadonlyArray<Part | null>>(
+    () => Array.from({ length: TILE_COUNT }, (_, i) => parts[i] ?? null),
+    [parts],
   );
 
   return (
@@ -47,13 +48,13 @@ export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      className="fixed inset-0 flex items-center justify-center overflow-hidden bg-[#0d0510]"
+      className="fixed inset-0 flex h-[100dvh] w-[100dvw] items-center justify-center overflow-hidden bg-[#0d0510]"
     >
       <button
         type="button"
         onClick={onBack}
         aria-label="실험실로 돌아가기"
-        className="absolute bottom-4 left-4 z-[20] rounded-md border-2 border-[#FF88BB]/60 bg-[rgba(20,5,16,0.75)] px-3 py-1.5 font-[family-name:var(--font-mono-hud)] text-[11px] tracking-[0.22em] text-[#FFB0D4] shadow-[0_0_10px_rgba(255,100,180,0.25)] backdrop-blur-sm transition hover:bg-[rgba(40,10,30,0.85)] hover:text-[#FFE0F0] active:scale-[0.97]"
+        className="absolute bottom-4 left-4 z-[20] rounded-md border-2 border-[#FF88BB]/60 bg-[rgba(20,5,16,0.75)] px-3 py-1.5 font-[family-name:var(--font-mono-hud)] text-[11px] tracking-[0.22em] text-[#FFB0D4] shadow-[0_0_10px_rgba(255,100,180,0.25)] backdrop-blur-sm transition active:scale-[0.95] active:bg-[rgba(40,10,30,0.9)]"
       >
         ← BACK
       </button>
@@ -61,7 +62,9 @@ export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
       <div
         className="relative"
         style={{
-          width: `min(100vw, calc(100vh * ${LAB_BASE_W / LAB_BASE_H}))`,
+          // `100dvh` excludes the browser URL bar so landscape mobile no
+          // longer crops the cabinet / title.
+          width: `min(100vw, calc(100dvh * ${LAB_BASE_W / LAB_BASE_H}))`,
           aspectRatio: `${LAB_BASE_W} / ${LAB_BASE_H}`,
         }}
       >
@@ -77,7 +80,7 @@ export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
           style={{ imageRendering: 'pixelated' }}
         />
 
-{/* Tile grid — code-rendered frames via `tile-sprite` SVG (option B). */}
+        {/* Tile grid — code-rendered frames via `tile-sprite` SVG (option B). */}
         <div
           className="absolute z-[10] grid grid-cols-5 grid-rows-3 gap-[1.3%]"
           style={{
@@ -92,9 +95,7 @@ export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
           ))}
         </div>
 
-        {/* Category HUD — right edge, top. Clear of the cabinet on the left
-            and below the pink decorative border. Small pill that reads as a
-            room tag, not a competing title. */}
+        {/* Category HUD — right edge, top. */}
         <motion.div
           initial={{ opacity: 0, x: 18 }}
           animate={{ opacity: 1, x: 0 }}
@@ -117,27 +118,47 @@ export default function PartShelfScreen({ category, partsMap, onBack }: Props) {
   );
 }
 
-// ── Individual tile — pixel-art pink frame (SVG sprite) + part image overlay.
-function ShelfTile({ part, index }: { part: Part | null; index: number }) {
-  const cart = useLabStore((s) => s.cart);
-  const addOrReplace = useLabStore((s) => s.addOrReplace);
-  const setToast = useLabStore((s) => s.setToast);
-  const inCart = part ? cart.some((c) => c.id === part.id) : false;
+// ── Individual tile — pixel-art pink frame + part image overlay.
+// Memoized and relies on a scalar `inCart` selector so a change to any
+// OTHER tile's cart state doesn't re-render every tile in the grid.
+const ShelfTile = memo(function ShelfTile({
+  part,
+  index,
+}: {
+  part: Part | null;
+  index: number;
+}) {
+  // Scalar selector: compares with Object.is, so unrelated cart changes
+  // return the same boolean and skip re-render.
+  const inCart = useLabStore(
+    useCallback(
+      (s) => (part ? s.cart.some((c) => c.id === part.id) : false),
+      [part],
+    ),
+  );
 
-  const handleClick = () => {
+  // Stable action/setter refs — no render-time work.
+  const handleClick = useCallback(() => {
     if (!part) return;
-    const wasInCart = inCart;
+    const { addOrReplace, setToast } = useLabStore.getState();
+    const wasInCart = useLabStore
+      .getState()
+      .cart.some((c) => c.id === part.id);
     const { replaced } = addOrReplace(part);
     if (wasInCart) {
       setToast(`✕ ${part.name} 제거`);
       return;
     }
     setToast(replaced ? `↻ ${replaced.name} → ${part.name}` : `+ ${part.name} 추가`);
-  };
+  }, [part]);
 
   const col = index % TILE_COLS;
   const row = Math.floor(index / TILE_COLS);
   const delay = 0.3 + (col + row) * 0.05;
+
+  const spriteSrc = inCart
+    ? '/images/ui/tile-frame-active.svg'
+    : '/images/ui/tile-frame.svg';
 
   return (
     <motion.button
@@ -149,19 +170,17 @@ function ShelfTile({ part, index }: { part: Part | null; index: number }) {
       initial={{ opacity: 0, scale: 0.8, filter: 'blur(4px)' }}
       animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
       transition={{ delay, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={part ? { scale: 1.07 } : undefined}
-      whileTap={part ? { scale: 0.95 } : undefined}
+      whileTap={part ? { scale: 0.94 } : undefined}
       className={[
         'tile-sprite-glow group relative flex aspect-square items-center justify-center disabled:cursor-default',
         inCart ? 'tile-sprite-glow--active' : '',
       ].join(' ')}
     >
       {/* Pixel-art frame as an inline <img> so `image-rendering: pixelated`
-          applies reliably across browsers (SVG-as-background sometimes
-          rasterizes smooth regardless of the hint). */}
+          applies reliably across browsers. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={inCart ? '/images/ui/tile-frame-active.svg' : '/images/ui/tile-frame.svg'}
+        src={spriteSrc}
         alt=""
         aria-hidden
         className="pointer-events-none absolute inset-0 h-full w-full"
@@ -179,8 +198,6 @@ function ShelfTile({ part, index }: { part: Part | null; index: number }) {
           unoptimized
         />
       ) : (
-        // Empty-slot placeholder: tiny 4-dot pixel sparkle so the frame
-        // doesn't read as pure empty space.
         <span
           aria-hidden
           className="relative z-[1] block h-[22%] w-[22%] opacity-70"
@@ -204,4 +221,4 @@ function ShelfTile({ part, index }: { part: Part | null; index: number }) {
       )}
     </motion.button>
   );
-}
+});

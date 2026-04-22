@@ -222,15 +222,19 @@ html, body {
    pixelated` reliably forces nearest-neighbor scaling. This wrapper class
    only adds the ambient "뿌연 빛" glow + hover/active transitions. */
 .tile-sprite-glow {
-  transition: filter 0.18s ease, transform 0.12s ease;
+  transition: filter 0.12s ease;
   filter:
     drop-shadow(0 0 6px rgba(255, 150, 200, 0.35))
     drop-shadow(0 2px 0 rgba(120, 40, 80, 0.25));
+  /* Promote the tile to its own compositor layer so the glow filter
+     doesn't repaint the shelf bg underneath when the state flips. */
+  will-change: filter, transform;
 }
-.tile-sprite-glow:hover:not(:disabled) {
+/* Click feedback only — no hover glow. */
+.tile-sprite-glow:active:not(:disabled) {
   filter:
-    drop-shadow(0 0 10px rgba(255, 130, 200, 0.6))
-    drop-shadow(0 0 18px rgba(255, 100, 180, 0.35))
+    drop-shadow(0 0 12px rgba(255, 130, 200, 0.6))
+    drop-shadow(0 0 20px rgba(255, 100, 180, 0.4))
     drop-shadow(0 2px 0 rgba(120, 40, 80, 0.3));
 }
 .tile-sprite-glow--active {

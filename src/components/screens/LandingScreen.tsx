@@ -52,13 +52,14 @@ export default function LandingScreen() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
-      className="fixed inset-0 flex items-center justify-center overflow-hidden bg-[#f6d7e3]"
+      className="fixed inset-0 flex h-[100dvh] w-[100dvw] items-center justify-center overflow-hidden bg-[#f6d7e3]"
       onClick={handleEnter}
     >
       <div
         className="relative"
         style={{
-          width: `min(100vw, calc(100vh * ${INTRO_W / INTRO_H}))`,
+          // `100dvh` so landscape mobile URL bars don't crop the intro.
+          width: `min(100vw, calc(100dvh * ${INTRO_W / INTRO_H}))`,
           aspectRatio: `${INTRO_W} / ${INTRO_H}`,
         }}
       >

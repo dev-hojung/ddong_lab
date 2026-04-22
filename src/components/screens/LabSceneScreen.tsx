@@ -35,12 +35,14 @@ export default function LabSceneScreen({ onPick }: Props) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22, ease: 'easeOut' }}
-      className="fixed inset-0 flex items-center justify-center overflow-hidden bg-[#0d0510]"
+      className="fixed inset-0 flex h-[100dvh] w-[100dvw] items-center justify-center overflow-hidden bg-[#0d0510]"
     >
       <div
         className="relative"
         style={{
-          width: `min(100vw, calc(100vh * ${LAB_BASE_W / LAB_BASE_H}))`,
+          // `100dvh` tracks the *visible* viewport height on mobile so the
+          // URL bar / notch no longer crops the lab scene in landscape.
+          width: `min(100vw, calc(100dvh * ${LAB_BASE_W / LAB_BASE_H}))`,
           aspectRatio: `${LAB_BASE_W} / ${LAB_BASE_H}`,
         }}
       >
@@ -76,7 +78,7 @@ export default function LabSceneScreen({ onPick }: Props) {
             aria-label={LAB_CAT_NAMES_LONG[z.id]}
             onClick={() => handleShelfPick(z)}
             disabled={isExiting}
-            className="absolute rounded-sm transition-[filter,transform] hover:brightness-110 hover:drop-shadow-[0_0_8px_rgba(255,100,160,0.75)] active:scale-[0.92] disabled:pointer-events-none"
+            className="absolute rounded-sm transition-[filter,transform] duration-75 active:scale-[0.92] active:brightness-125 active:drop-shadow-[0_0_10px_rgba(255,100,160,0.8)] disabled:pointer-events-none"
             style={{
               left: `${z.x1 * 100}%`,
               top: `${z.y1 * 100}%`,
