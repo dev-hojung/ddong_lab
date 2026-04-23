@@ -352,136 +352,24 @@ export default function AssemblyScreen() {
         </div>
       </div>
 
-      {/* ── Mobile-only floating control pads ── */}
+      {/* ── Mobile-only floating control pads — left/right thumb layout
+             for the mandatory landscape orientation. FABs live at each
+             side of the screen; their pads expand inward from the same
+             side so the edge-pair reads like a handheld controller. ── */}
       {!previewMode && selectedPart && (
         <div className="lg:hidden">
-          {/* Expanded pad (appears above FABs when active) */}
-          <AnimatePresence>
-            {activePad && (
-              <motion.div
-                key={activePad}
-                initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                className="fixed bottom-[72px] left-1/2 z-40 -translate-x-1/2"
-              >
-                <div
-                  className="flex min-w-[230px] flex-col items-center gap-2 rounded-lg border border-[#FF88BB]/45 bg-[rgba(12,4,18,0.95)] p-3 backdrop-blur-md"
-                  style={{ boxShadow: '0 0 20px rgba(255,120,180,0.3), 0 8px 24px rgba(0,0,0,0.6)' }}
-                >
-                  <div className="flex w-full items-center justify-between border-b border-[#FF88BB]/25 pb-1.5">
-                    <span className="font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.22em] text-[#FFB0D4]">
-                      {activePad === 'move' ? '✋ MOVE' : '⤢ SIZE'}
-                      <span className="ml-2 text-[#FFE0F0]">{selectedPart.name}</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setActivePad(null)}
-                      aria-label="Close pad"
-                      className="text-[#FFB0D4]/60 transition active:text-[#FFE0F0]"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {activePad === 'move' ? (
-                    <>
-                      {selectedOffset && (selectedOffset.x !== 0 || selectedOffset.y !== 0) && (
-                        <div className="font-[family-name:var(--font-josefin)] text-[0.6rem] tracking-[0.1em] text-[#A0FFB8]">
-                          pos({selectedOffset.x}, {selectedOffset.y})
-                        </div>
-                      )}
-                      <div className="grid grid-cols-3 gap-2">
-                        <span />
-                        <NudgeBtn label="▲" onClick={() => nudge(0, -1)} aria="Up 1px" big />
-                        <span />
-                        <NudgeBtn label="◀" onClick={() => nudge(-1, 0)} aria="Left 1px" big />
-                        <NudgeBtn
-                          label="●"
-                          onClick={() => selectedId && setPartOffset(selectedId, { x: 0, y: 0 })}
-                          aria="Center"
-                          big
-                        />
-                        <NudgeBtn label="▶" onClick={() => nudge(1, 0)} aria="Right 1px" big />
-                        <span />
-                        <NudgeBtn label="▼" onClick={() => nudge(0, 1)} aria="Down 1px" big />
-                        <span />
-                      </div>
-                      <div className="flex gap-1.5">
-                        <NudgeBtn label="◀10" onClick={() => nudge(-10, 0)} aria="Left 10" small />
-                        <NudgeBtn label="▲10" onClick={() => nudge(0, -10)} aria="Up 10" small />
-                        <NudgeBtn label="▼10" onClick={() => nudge(0, 10)} aria="Down 10" small />
-                        <NudgeBtn label="10▶" onClick={() => nudge(10, 0)} aria="Right 10" small />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      {/* Large value display */}
-                      <div
-                        className="font-[family-name:var(--font-cormorant)] italic text-3xl font-medium leading-none tabular-nums text-[#FFE0F0]"
-                        style={{ textShadow: '0 0 14px rgba(255,120,180,0.6)' }}
-                      >
-                        {(selectedScale * 100).toFixed(0)}
-                        <span className="ml-0.5 text-xl text-[#FFB0D4]">%</span>
-                      </div>
-
-                      {/* Slider 30% ~ 300% */}
-                      <div className="flex w-full items-center gap-2 px-1">
-                        <span className="font-[family-name:var(--font-josefin)] text-[0.55rem] tracking-[0.08em] text-[rgba(255,150,200,0.55)]">
-                          30
-                        </span>
-                        <input
-                          type="range"
-                          min={0.3}
-                          max={3}
-                          step={0.01}
-                          value={selectedScale}
-                          onChange={(e) =>
-                            selectedId &&
-                            setPartScale(
-                              selectedId,
-                              Math.round(Number(e.target.value) * 100) / 100,
-                            )
-                          }
-                          className="lab-slider flex-1"
-                          aria-label="Scale slider"
-                        />
-                        <span className="font-[family-name:var(--font-josefin)] text-[0.55rem] tracking-[0.08em] text-[rgba(255,150,200,0.55)]">
-                          300
-                        </span>
-                      </div>
-
-                      {/* Fine controls */}
-                      <div className="flex items-center gap-1.5">
-                        <NudgeBtn label="−5" onClick={() => adjustScale(-0.05)} aria="Shrink 5%" small />
-                        <NudgeBtn label="−1" onClick={() => adjustScale(-0.01)} aria="Shrink 1%" small />
-                        <button
-                          type="button"
-                          onClick={() => selectedId && setPartScale(selectedId, 1)}
-                          className="h-7 cursor-pointer rounded-[1px] border border-[#FF88BB]/50 bg-[rgba(255,140,190,0.15)] px-2 font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.14em] text-[#FFE0F0] transition active:translate-y-[1px]"
-                          aria-label="Reset to 100%"
-                        >
-                          ↺ 100%
-                        </button>
-                        <NudgeBtn label="+1" onClick={() => adjustScale(0.01)} aria="Grow 1%" small />
-                        <NudgeBtn label="+5" onClick={() => adjustScale(0.05)} aria="Grow 5%" small />
-                      </div>
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* FAB row (fixed at bottom-center) */}
-          <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 gap-2">
+          {/* Left thumb — Move */}
+          <div className="fixed left-3 top-1/2 z-40 -translate-y-1/2">
             <FabButton
               icon="✋"
               label="Move"
               active={activePad === 'move'}
               onClick={() => setActivePad((p) => (p === 'move' ? null : 'move'))}
             />
+          </div>
+
+          {/* Right thumb — Size */}
+          <div className="fixed right-3 top-1/2 z-40 -translate-y-1/2">
             <FabButton
               icon="⤢"
               label="Size"
@@ -489,9 +377,161 @@ export default function AssemblyScreen() {
               onClick={() => setActivePad((p) => (p === 'size' ? null : 'size'))}
             />
           </div>
+
+          {/* Move pad — expands to the right of the left FAB */}
+          <AnimatePresence>
+            {activePad === 'move' && (
+              <motion.div
+                key="move-pad"
+                initial={{ opacity: 0, x: -24, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -24, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                className="fixed left-[84px] top-1/2 z-40 -translate-y-1/2"
+              >
+                <PadShell
+                  title="✋ MOVE"
+                  partName={selectedPart.name}
+                  onClose={() => setActivePad(null)}
+                >
+                  {selectedOffset && (selectedOffset.x !== 0 || selectedOffset.y !== 0) && (
+                    <div className="font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.18em] text-[#A0FFB8]">
+                      pos({selectedOffset.x}, {selectedOffset.y})
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 gap-2">
+                    <span />
+                    <NudgeBtn label="▲" onClick={() => nudge(0, -1)} aria="Up 1px" big />
+                    <span />
+                    <NudgeBtn label="◀" onClick={() => nudge(-1, 0)} aria="Left 1px" big />
+                    <NudgeBtn
+                      label="●"
+                      onClick={() => selectedId && setPartOffset(selectedId, { x: 0, y: 0 })}
+                      aria="Center"
+                      big
+                    />
+                    <NudgeBtn label="▶" onClick={() => nudge(1, 0)} aria="Right 1px" big />
+                    <span />
+                    <NudgeBtn label="▼" onClick={() => nudge(0, 1)} aria="Down 1px" big />
+                    <span />
+                  </div>
+                  <div className="flex gap-1.5">
+                    <NudgeBtn label="◀10" onClick={() => nudge(-10, 0)} aria="Left 10" small />
+                    <NudgeBtn label="▲10" onClick={() => nudge(0, -10)} aria="Up 10" small />
+                    <NudgeBtn label="▼10" onClick={() => nudge(0, 10)} aria="Down 10" small />
+                    <NudgeBtn label="10▶" onClick={() => nudge(10, 0)} aria="Right 10" small />
+                  </div>
+                </PadShell>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Size pad — expands to the left of the right FAB */}
+          <AnimatePresence>
+            {activePad === 'size' && (
+              <motion.div
+                key="size-pad"
+                initial={{ opacity: 0, x: 24, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 24, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                className="fixed right-[84px] top-1/2 z-40 -translate-y-1/2"
+              >
+                <PadShell
+                  title="⤢ SIZE"
+                  partName={selectedPart.name}
+                  onClose={() => setActivePad(null)}
+                >
+                  <div
+                    className="font-[family-name:var(--font-cormorant)] italic text-3xl font-medium leading-none tabular-nums text-[#FFE0F0]"
+                    style={{ textShadow: '0 0 14px rgba(255,120,180,0.6)' }}
+                  >
+                    {(selectedScale * 100).toFixed(0)}
+                    <span className="ml-0.5 text-xl text-[#FFB0D4]">%</span>
+                  </div>
+
+                  <div className="flex w-full items-center gap-2 px-1">
+                    <span className="font-[family-name:var(--font-mono-hud)] text-[9px] tracking-[0.1em] text-[#FFB0D4]/60">
+                      30
+                    </span>
+                    <input
+                      type="range"
+                      min={0.3}
+                      max={3}
+                      step={0.01}
+                      value={selectedScale}
+                      onChange={(e) =>
+                        selectedId &&
+                        setPartScale(
+                          selectedId,
+                          Math.round(Number(e.target.value) * 100) / 100,
+                        )
+                      }
+                      className="lab-slider flex-1"
+                      aria-label="Scale slider"
+                    />
+                    <span className="font-[family-name:var(--font-mono-hud)] text-[9px] tracking-[0.1em] text-[#FFB0D4]/60">
+                      300
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <NudgeBtn label="−5" onClick={() => adjustScale(-0.05)} aria="Shrink 5%" small />
+                    <NudgeBtn label="−1" onClick={() => adjustScale(-0.01)} aria="Shrink 1%" small />
+                    <button
+                      type="button"
+                      onClick={() => selectedId && setPartScale(selectedId, 1)}
+                      className="h-7 cursor-pointer rounded-[1px] border border-[#FF88BB]/50 bg-[rgba(255,140,190,0.15)] px-2 font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.14em] text-[#FFE0F0] transition active:translate-y-[1px]"
+                      aria-label="Reset to 100%"
+                    >
+                      ↺ 100%
+                    </button>
+                    <NudgeBtn label="+1" onClick={() => adjustScale(0.01)} aria="Grow 1%" small />
+                    <NudgeBtn label="+5" onClick={() => adjustScale(0.05)} aria="Grow 5%" small />
+                  </div>
+                </PadShell>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </motion.section>
+  );
+}
+
+// ── Pad shell — shared chrome for the left Move pad + right Size pad.
+function PadShell({
+  title,
+  partName,
+  onClose,
+  children,
+}: {
+  title: string;
+  partName: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="flex min-w-[220px] flex-col items-center gap-2 rounded-lg border border-[#FF88BB]/45 bg-[rgba(12,4,18,0.95)] p-3 backdrop-blur-md"
+      style={{ boxShadow: '0 0 20px rgba(255,120,180,0.3), 0 8px 24px rgba(0,0,0,0.6)' }}
+    >
+      <div className="flex w-full items-center justify-between border-b border-[#FF88BB]/25 pb-1.5">
+        <span className="font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.22em] text-[#FFB0D4]">
+          {title}
+          <span className="ml-2 text-[#FFE0F0]">{partName}</span>
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close pad"
+          className="text-[#FFB0D4]/60 transition active:text-[#FFE0F0]"
+        >
+          ✕
+        </button>
+      </div>
+      {children}
+    </div>
   );
 }
 
