@@ -105,9 +105,9 @@ export default function PartShelfScreen({
         />
 
         {/* Cabinet shelf click overlay — hop between shelves without going
-            back to the lab scene. Hitboxes are elliptical so they match
-            the curvature of the glass cylinder the shelves live in; the
-            active shelf gets a soft inner halo + an LED pulse. */}
+            back to the lab scene. Each hitbox is clipped to the glass
+            cylinder's curvature so the dark corners of its bounding box
+            stay un-clickable. Active shelf gets an inner halo + LED. */}
         {CABINET_SHELF_ZONES.map((z) => {
           const isActive = z.id === category;
           return (
@@ -119,10 +119,7 @@ export default function PartShelfScreen({
               onClick={() => !isActive && onSwitchCategory(z.id)}
               disabled={isActive}
               className={[
-                // `border-radius: 50% / 18%` — flat sides, rounded caps, matching
-                // the cabinet's cylindrical profile where the glass curves at
-                // top & bottom of each shelf band.
-                'absolute z-[11] rounded-[50%_/_18%] transition-[filter,transform,box-shadow] duration-150',
+                'absolute z-[11] transition-[filter,transform,box-shadow] duration-150',
                 isActive
                   ? 'pointer-events-none shadow-[inset_0_0_22px_rgba(255,120,180,0.45),0_0_18px_rgba(255,120,180,0.35)]'
                   : 'cursor-pointer active:scale-[0.96] active:brightness-125 active:shadow-[inset_0_0_18px_rgba(255,120,180,0.55),0_0_14px_rgba(255,120,180,0.5)]',
@@ -132,12 +129,16 @@ export default function PartShelfScreen({
                 top: `${z.y1 * 100}%`,
                 width: `${(z.x2 - z.x1) * 100}%`,
                 height: `${(z.y2 - z.y1) * 100}%`,
+                // `clip-path: ellipse()` constrains BOTH the visible surface
+                // AND pointer hit-testing to an ellipse — the corners outside
+                // the glass curve are transparent *and* non-interactive.
+                clipPath: 'ellipse(50% 50% at 50% 50%)',
               }}
             >
               {isActive && (
                 <span
                   aria-hidden
-                  className="absolute -right-1.5 top-1/2 inline-block h-2 w-2 -translate-y-1/2 rounded-full bg-[#FF4E9A] shadow-[0_0_10px_rgba(255,78,154,0.9)]"
+                  className="absolute right-[6%] top-1/2 inline-block h-2 w-2 -translate-y-1/2 rounded-full bg-[#FF4E9A] shadow-[0_0_10px_rgba(255,78,154,0.9)]"
                   style={{ animation: 'led-blink 1.6s ease-in-out infinite' }}
                 />
               )}
