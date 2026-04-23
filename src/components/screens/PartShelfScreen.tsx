@@ -3,10 +3,11 @@
 import Image from 'next/image';
 import { memo, useCallback, useMemo } from 'react';
 
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import type { Category, Part } from '@/lib/parts-data';
 import {
+  CABINET_SHELF_ZONES,
   LAB_BASE_H,
   LAB_BASE_W,
   LAB_CAT_NAMES_LONG,
@@ -21,6 +22,7 @@ type Props = {
   partsMap: Record<Category, Part[]>;
   onBack: () => void;
   onCombine: () => void;
+  onSwitchCategory: (next: LabCategory) => void;
 };
 
 const TILE_COLS = 5;
@@ -35,6 +37,7 @@ export default function PartShelfScreen({
   partsMap,
   onBack,
   onCombine,
+  onSwitchCategory,
 }: Props) {
   const v1Cat = V2_TO_V1_CATEGORY[category];
   const longName = LAB_CAT_NAMES_LONG[category];
@@ -101,37 +104,91 @@ export default function PartShelfScreen({
           style={{ imageRendering: 'pixelated' }}
         />
 
-        {/* Tile grid — code-rendered frames via `tile-sprite` SVG (option B). */}
-        <div
-          className="absolute z-[10] grid grid-cols-5 grid-rows-3 gap-[1.3%]"
-          style={{
-            left: `${GRID_POSE.left * 100}%`,
-            top: `${GRID_POSE.top * 100}%`,
-            width: `${GRID_POSE.width * 100}%`,
-            height: `${GRID_POSE.height * 100}%`,
-          }}
-        >
-          {slots.map((part, i) => (
-            <ShelfTile key={part ? part.id : `empty-${i}`} part={part} index={i} />
-          ))}
-        </div>
+        {/* Cabinet shelf click overlay — hop between shelves without going
+            back to the lab scene. Current shelf gets a soft pulse so the
+            user knows where they are. */}
+        {CABINET_SHELF_ZONES.map((z) => {
+          const isActive = z.id === category;
+          return (
+            <button
+              key={z.id}
+              type="button"
+              aria-label={`${LAB_CAT_NAMES_LONG[z.id]}로 이동`}
+              aria-current={isActive ? 'true' : undefined}
+              onClick={() => !isActive && onSwitchCategory(z.id)}
+              disabled={isActive}
+              className={[
+                'absolute z-[11] rounded-sm transition-[filter,transform] duration-100 active:scale-[0.94]',
+                isActive
+                  ? 'pointer-events-none'
+                  : 'cursor-pointer active:brightness-125 active:drop-shadow-[0_0_12px_rgba(255,120,180,0.85)]',
+              ].join(' ')}
+              style={{
+                left: `${z.x1 * 100}%`,
+                top: `${z.y1 * 100}%`,
+                width: `${(z.x2 - z.x1) * 100}%`,
+                height: `${(z.y2 - z.y1) * 100}%`,
+              }}
+            >
+              {isActive && (
+                <span
+                  aria-hidden
+                  className="absolute -right-2 top-1/2 inline-block h-2 w-2 -translate-y-1/2 rounded-[1px] bg-[#FF4E9A] shadow-[0_0_10px_rgba(255,78,154,0.9)]"
+                  style={{ animation: 'led-blink 1.6s ease-in-out infinite' }}
+                />
+              )}
+            </button>
+          );
+        })}
 
-        {/* Category HUD — right edge, top. */}
-        <motion.div
-          initial={{ opacity: 0, x: 18 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.25, duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute z-[12] flex items-center gap-2 rounded-md border border-[#FF88BB]/50 bg-[rgba(20,5,16,0.7)] px-3 py-1 backdrop-blur-sm"
-          style={{ right: '5%', top: '7%' }}
-        >
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF4E9A] shadow-[0_0_6px_rgba(255,78,154,0.85)]" />
-          <span className="font-[family-name:var(--font-mono-hud)] text-[11px] tracking-[0.28em] text-[#FFD5E8]">
-            {category.toUpperCase()}
-          </span>
-          <span className="font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.18em] text-[#FFB0D4]/70">
-            {longName}
-          </span>
-        </motion.div>
+        {/* Tile grid — keyed by category so switching shelves exits the
+            old grid and replays the stagger for the new one. */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={category}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="absolute z-[10] grid grid-cols-5 grid-rows-3 gap-[1.3%]"
+            style={{
+              left: `${GRID_POSE.left * 100}%`,
+              top: `${GRID_POSE.top * 100}%`,
+              width: `${GRID_POSE.width * 100}%`,
+              height: `${GRID_POSE.height * 100}%`,
+            }}
+          >
+            {slots.map((part, i) => (
+              <ShelfTile
+                key={part ? part.id : `empty-${category}-${i}`}
+                part={part}
+                index={i}
+              />
+            ))}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Category HUD — right edge, top. Keyed so text swaps with the
+            shelf switch. */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={category}
+            initial={{ opacity: 0, x: 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute z-[12] flex items-center gap-2 rounded-md border border-[#FF88BB]/50 bg-[rgba(20,5,16,0.7)] px-3 py-1 backdrop-blur-sm"
+            style={{ right: '5%', top: '7%' }}
+          >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FF4E9A] shadow-[0_0_6px_rgba(255,78,154,0.85)]" />
+            <span className="font-[family-name:var(--font-mono-hud)] text-[11px] tracking-[0.28em] text-[#FFD5E8]">
+              {category.toUpperCase()}
+            </span>
+            <span className="font-[family-name:var(--font-mono-hud)] text-[10px] tracking-[0.18em] text-[#FFB0D4]/70">
+              {longName}
+            </span>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       <div className="scan-ov pointer-events-none absolute inset-0 z-[13] opacity-35" />

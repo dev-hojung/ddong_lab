@@ -130,6 +130,19 @@ export default function Page() {
     show('s4');
   }, [show]);
 
+  const handleSwitchCategory = useCallback(
+    (next: LabCategory) => {
+      if (next === cat) return;
+      const target = mainRef.current;
+      // Short glitch flash for the feedback bite without stalling the switch.
+      if (target) {
+        runPixelGlitch(target, { duration: 300 });
+      }
+      setCat(next);
+    },
+    [cat],
+  );
+
   return (
     <main
       ref={mainRef}
@@ -145,6 +158,7 @@ export default function Page() {
               partsMap={partsMap}
               onBack={handleBackFromShelf}
               onCombine={handleGoToAssembly}
+              onSwitchCategory={handleSwitchCategory}
             />
           )}
           {screen === 's4' && <AssemblyScreen />}
